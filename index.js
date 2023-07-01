@@ -1,27 +1,35 @@
-// http 모듈을 import합니다.
-const http = require('http');
-const url = require('url');
+const express = require('express');
+const axios = require('axios');
 
-// 서버를 생성합니다.
-const server = http.createServer((req, res) => {
-  // 요청 메소드가 GET인지 확인합니다.
-  if (req.method === 'GET') {
-    const reqUrl = url.parse(req.url, true);
+//ENV
+require('dotenv').config()
 
-    // GET 요청의 경우, 요청 URL을 확인합니다.
-    if (reqUrl.pathname == '/sample') {
-      const name = reqUrl.query.name; // URL에서 name 파라미터를 얻습니다.
-      
-      // HTTP 상태 코드 200과 함께 응답합니다.
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.write(`<h1>Hello ${name}!</h1>`);
-      res.end();
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
+const app = express();
+const port = process.env.PORT;
+
+const resource_url = process.env.OAUTH_URL;  // 스프링 서버의 보호된 리소스 URL
+
+/*dialog api*/
+app.get('/dialog', async (req, res) => {
+  const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
+  
+  //리소스에 접급
+  try {
+    const response = await axios.get(resource_url, {
+      headers: {
+        'Authorization': `${token}`
+      }
+    });
+
+    // 응답 전송
+    const data = response.data;
+    
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).send(error.toString());
   }
 });
 
-// 서버가 3000번 포트에서 리스닝하게 합니다.
-server.listen(9000);
+app.listen(port, () => {
+  console.log(`App listening at http://localhost:${port}`)
+});
