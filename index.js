@@ -12,7 +12,8 @@ const resource_url = process.env.OAUTH_URL;  // 스프링 서버의 보호된 �
 //mongoose
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost/test', {useNewUrlParser: true, useUnifiedTopology: true});
+//mongoDB Connect
+mongoose.connect(process.env.MONGO_DB, {useNewUrlParser: true, useUnifiedTopology: true});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -21,6 +22,23 @@ db.once('open', function() {
   console.log("Connected to MongoDB!");
 });
 
+//채팅방 스키마 설정
+const chatroomSchema = new mongoose.Schema({
+  roomName: String,
+  person1: String,
+  person2: String
+});
+
+//채팅 스키마 설정
+const chatSchema = new mongoose.Schema({
+  content: String,
+  person1: String,
+  person2: String
+});
+
+//스키마 생성
+const chat = mongoose.model('chat', chatSchema);
+const chatroom = mongoose.model('chatroom', chatroomSchema);
 
 /*oauth api*/
 //Oauth2.0 연결 API
