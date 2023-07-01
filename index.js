@@ -25,9 +25,17 @@ db.once('open', function() {
   console.log("Connected to MongoDB!");
 });
 
+//카운터 스키마 설정
+const counterSchema = mongoose.Schema({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 }
+});
+
+const counter = mongoose.model('counter', counterSchema);
+
 //채팅방 스키마 설정
 const roomSchema = new mongoose.Schema({
-  roomName: String,
+  roomId: { type: Number, unique: true },
   participants: [String]
 });
 
@@ -36,6 +44,24 @@ const chatSchema = new mongoose.Schema({
   content: String,
   roomNum: String,
   person: String
+});
+
+//채팅방 저장 전에 실행되는 pre hook
+roomSchema.pre('save', async function(next) {
+  var doc = this;
+
+  try {
+    const counterDoc = await counter.findByIdAndUpdate(
+      {_id: 'roomId'},
+      {$inc: {seq: 1}},
+      {new: true, upsert: true}
+    );
+
+    doc.roomId = counterDoc.seq;
+    next();
+  } catch (error) {
+    return next(error);
+  }
 });
 
 //스키마 생성
@@ -98,7 +124,7 @@ app.post('/chat/room/create', async (req, res) => {
     }
     
     // 채팅방이 존재하지 않으므로 생성
-    const newChatroom = new chatroom({ roomName: 'hi', participants: [me,you] });
+    const newChatroom = new chatroom({participants: [me,you] });
     await newChatroom.save();
     
     res.send(response.data);
