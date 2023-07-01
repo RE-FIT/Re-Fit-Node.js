@@ -7,6 +7,9 @@ require('dotenv').config()
 const app = express();
 const port = process.env.PORT;
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const resource_url = process.env.OAUTH_URL;  // 스프링 서버의 보호된 리소스 URL
 
 //mongoose
@@ -23,28 +26,27 @@ db.once('open', function() {
 });
 
 //채팅방 스키마 설정
-const chatroomSchema = new mongoose.Schema({
+const roomSchema = new mongoose.Schema({
   roomName: String,
-  person1: String,
-  person2: String
+  participants: [String]
 });
 
 //채팅 스키마 설정
 const chatSchema = new mongoose.Schema({
   content: String,
-  person1: String,
-  person2: String
+  roomNum: String,
+  person: String
 });
 
 //스키마 생성
 const chat = mongoose.model('chat', chatSchema);
-const chatroom = mongoose.model('chatroom', chatroomSchema);
+const chatroom = mongoose.model('chatroom', roomSchema);
 
-/*oauth api*/
-//Oauth2.0 연결 API
-app.get('/oauth2', async (req, res) => {
+/*chat room api*/
+//모든 채팅방 조회
+app.get('/chat/room/all', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
-  
+
   //리소스에 접급
   try {
     const response = await axios.get(resource_url, {
@@ -53,20 +55,28 @@ app.get('/oauth2', async (req, res) => {
       }
     });
 
-    // 응답 전송
-    const data = response.data;
-    
-    res.send(response.data);
+    // 유저 정보 수집
+    const me = response.data.userId
+
+    // Chatroom 조회 (Read)
+    chatroom.find({ participants: me })
+    .then((chatrooms) => {
+      res.json(chatrooms);  // 조회된 chatrooms을 응답으로 전송
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send(err.toString());
+    });
   } catch (error) {
     res.status(500).send(error.toString());
   }
 });
 
-/*chat room api*/
+
 //채팅방 생성 API
-app.get('/chat/room', async (req, res) => {
+app.post('/chat/room/create', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
-  
+
   //리소스에 접급
   try {
     const response = await axios.get(resource_url, {
@@ -75,12 +85,29 @@ app.get('/chat/room', async (req, res) => {
       }
     });
 
-    // 응답 전송
-    const data = response.data;
+    // 유저 정보 수집
+    const me = response.data.userId;
+    const you = req.body.id;
+
+    // Chatroom 조회 (Read)
+    const chatrooms = await chatroom.find({ participants: { $all: [me, you] } });
+    
+    if(chatrooms.length > 0){
+      // 채팅방이 존재하므로 오류 발생
+      throw new Error("Chatroom already exists!");
+    }
+    
+    // 채팅방이 존재하지 않으므로 생성
+    const newChatroom = new chatroom({ roomName: 'hi', participants: [me,you] });
+    await newChatroom.save();
     
     res.send(response.data);
   } catch (error) {
-    res.status(500).send(error.toString());
+    if (error.message === "Chatroom already exists!") {
+      res.status(400).json({ message: "채팅방이 이미 존재합니다", code: 50000 });
+    } else {
+      res.status(500).json({ message: error.toString(), code: "INTERNAL_SERVER_ERROR" });
+    }
   }
 });
 
