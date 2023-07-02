@@ -42,7 +42,7 @@ const roomSchema = new mongoose.Schema({
 //채팅 스키마 설정
 const chatSchema = new mongoose.Schema({
   content: String,
-  roomNum: String,
+  roomId: Number,
   person: String
 });
 
@@ -87,7 +87,13 @@ app.get('/chat/room/all', async (req, res) => {
     // Chatroom 조회 (Read)
     chatroom.find({ participants: me })
     .then((chatrooms) => {
-      res.json(chatrooms);  // 조회된 chatrooms을 응답으로 전송
+      const reducedChatrooms = chatrooms.map(chatroom => {
+        return {
+          roomId: chatroom.roomId,
+          participants: chatroom.participants
+        }
+      });
+      res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
     })
     .catch((err) => {
       console.error(err);
