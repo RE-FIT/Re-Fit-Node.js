@@ -69,7 +69,7 @@ const chat = mongoose.model('chat', chatSchema);
 const chatroom = mongoose.model('chatroom', roomSchema);
 
 /*chat room api*/
-//모든 채팅방 조회
+//모든 채팅방 조회 API
 app.get('/chat/room/all', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
 
@@ -140,6 +140,44 @@ app.post('/chat/room/create', async (req, res) => {
     } else {
       res.status(500).json({ message: error.toString(), code: "INTERNAL_SERVER_ERROR" });
     }
+  }
+});
+
+//채팅방 조회 API
+app.get('/chat/room/:roomId', async (req, res) => {
+  const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
+  const roomId = req.params.roomId;  // route parameter로부터 roomId를 추출
+
+  //리소스에 접급
+  try {
+    const response = await axios.get(resource_url, {
+      headers: {
+        'Authorization': `${token}`
+      }
+    });
+
+    // 유저 정보 수집
+    const me = response.data.userId
+
+    // Chatroom 조회 (Read)
+    chatroom.findOne({ roomId: roomId, participants: me })
+    .then((chatroom) => {
+      if(chatroom) {
+        const reducedChatroom = {
+          roomId: chatroom.roomId,
+          participants: chatroom.participants
+        };
+        res.json(reducedChatroom);  // 조회된 chatroom을 응답으로 전송
+      } else {
+        res.status(404).send('Room not found');  // roomId에 해당하는 방이 없거나, 사용자가 참여하지 않은 방인 경우
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send(err.toString());
+    });
+  } catch (error) {
+    res.status(500).send(error.toString());
   }
 });
 
