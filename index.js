@@ -48,19 +48,23 @@ const chatSchema = new mongoose.Schema({
 
 //채팅방 저장 전에 실행되는 pre hook
 roomSchema.pre('save', async function(next) {
-  var doc = this;
-
-  try {
-    const counterDoc = await counter.findByIdAndUpdate(
-      {_id: 'roomId'},
-      {$inc: {seq: 1}},
-      {new: true, upsert: true}
-    );
-
-    doc.roomId = counterDoc.seq;
+  // only increment when the document is new
+  if (this.isNew) {
+    var doc = this;
+    try {
+      const counterDoc = await counter.findByIdAndUpdate(
+        {_id: 'roomId'},
+        {$inc: {seq: 1}},
+        {new: true, upsert: true}
+      );
+  
+      doc.roomId = counterDoc.seq;
+      next();
+    } catch (error) {
+      return next(error);
+    }
+  } else {
     next();
-  } catch (error) {
-    return next(error);
   }
 });
 
