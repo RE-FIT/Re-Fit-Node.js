@@ -85,8 +85,8 @@ io.on('connection', (socket) => {
 
   console.log("connect success")
 
-  //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
-  //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
+  // //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
+  // //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
   socket.on('joinRoom', (roomId, userId) => {
     socket.join(roomId); //소켓을 roomId에 지정된 방에 조인
     console.log(`User ${userId} joined room ${roomId}`);
@@ -109,6 +109,12 @@ io.on('connection', (socket) => {
 
     // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
     io.to(roomId).emit('message', userId, message);
+  });
+
+  // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
+  socket.on('leaveRoom', (roomId, userId) => {
+    socket.leave(roomId);
+    console.log(`User ${userId} left room ${roomId}`);
   });
 
   socket.on('disconnect', () => {
