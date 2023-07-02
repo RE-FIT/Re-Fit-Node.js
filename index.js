@@ -83,6 +83,8 @@ const io = socketIo(server);
 // Socket.IO 이벤트 핸들러 설정, 클라이언트와 서버가 연결되면 connection 이벤트가 발생
 io.on('connection', (socket) => {
 
+  console.log("connect success")
+
   //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
   //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
   socket.on('joinRoom', (roomId, userId) => {
@@ -193,7 +195,7 @@ app.post('/chat/room/create', async (req, res) => {
   }
 });
 
-//채팅방 조회 API
+//특정 채팅방의 모든 채팅 내용 조회 API
 app.get('/chat/room/:roomId', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
   const roomId = req.params.roomId;  // route parameter로부터 roomId를 추출
@@ -209,23 +211,28 @@ app.get('/chat/room/:roomId', async (req, res) => {
     // 유저 정보 수집
     const me = response.data.userId
 
-    // Chatroom 조회 (Read)
-    chatroom.findOne({ roomId: roomId, participants: me })
-    .then((chatroom) => {
-      if(chatroom) {
-        const reducedChatroom = {
-          roomId: chatroom.roomId,
-          participants: chatroom.participants
-        };
-        res.json(reducedChatroom);  // 조회된 chatroom을 응답으로 전송
-      } else {
-        res.status(404).send('Room not found');  // roomId에 해당하는 방이 없거나, 사용자가 참여하지 않은 방인 경우
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send(err.toString());
-    });
+    // 채팅방 참여 여부 확인
+    const room = await chatroom.findOne({ roomId: roomId, participants: me });
+    
+    if(room) {
+      // 채팅 내용 조회
+      chat.find({ roomId: roomId })
+      .then((chats) => {
+        const reducedChats = chats.map(chat => {
+          return {
+            content: chat.content,
+            person: chat.person
+          }
+        });
+        res.json(reducedChats);  // 조회된 chat들을 응답으로 전송
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send(err.toString());
+      });
+    } else {
+      res.status(404).send('Room not found or you are not participant');  // roomId에 해당하는 방이 없거나, 사용자가 참여하지 않은 방인 경우
+    }
   } catch (error) {
     res.status(500).send(error.toString());
   }
