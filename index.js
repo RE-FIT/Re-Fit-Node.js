@@ -72,6 +72,52 @@ roomSchema.pre('save', async function(next) {
 const chat = mongoose.model('chat', chatSchema);
 const chatroom = mongoose.model('chatroom', roomSchema);
 
+// Socket IO 패키지 추가
+const http = require('http');
+const socketIo = require('socket.io');
+
+// 기존의 'app.listen' 대신에 다음 코드를 사용합니다.
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// Socket.IO 이벤트 핸들러 설정, 클라이언트와 서버가 연결되면 connection 이벤트가 발생
+io.on('connection', (socket) => {
+
+  //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
+  //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
+  socket.on('joinRoom', (roomId, userId) => {
+    socket.join(roomId); //소켓을 roomId에 지정된 방에 조인
+    console.log(`User ${userId} joined room ${roomId}`);
+  });
+
+  //사용자가 메시지 보내면 일어나는 이벤트
+  //사용자가 채팅 메시지를 보낼때 클라이언트에서 발생함, 이때 매개변수로 roomId, userId, message 전달
+  socket.on('message', async (roomId, userId, message) => {
+    console.log(`Message from user ${userId} in room ${roomId}: ${message}`);
+
+    // 새로운 메시지 생성
+    const newMessage = new chat({
+      content: message,
+      roomId: roomId,
+      person: userId
+    });
+
+    // 메시지 저장
+    await newMessage.save(); //저장 메시지 생성
+
+    // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
+    io.to(roomId).emit('message', userId, message);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+server.listen(port, () => {
+  console.log(`App listening at http://localhost:${port}`)
+});
+
 /*chat room api*/
 //모든 채팅방 조회 API
 app.get('/chat/room/all', async (req, res) => {
@@ -242,9 +288,4 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
   } catch (error) {
     res.status(500).send(error.toString());
   }
-});
-
-
-app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`)
 });
