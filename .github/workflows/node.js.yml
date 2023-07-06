@@ -1,0 +1,54 @@
+name: CD
+
+on:
+  push:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set .env file
+      run: |
+        echo "PORT=${{ secrets.PORT }}" >> .env
+        echo "OAUTH_URL=${{ secrets.OAUTH_URL }}" >> .env
+        echo "MONGO_DB=${{ secrets.MONGO_DB }}" >> .env
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.16.0
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Build App
+      run: npm run build
+
+    - name: Docker Build and Push
+      run: |
+        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker build -t ${{ secrets.DOCKER_REPO }}/refit-node .
+        docker push ${{ secrets.DOCKER_REPO }}/refit-nodejs
+
+    - name: Deploy
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.HOST }}
+        username: ubuntu
+        key: ${{ secrets.KEY }}
+        script: |
+          sudo docker rm -f $(docker ps -qa)
+          sudo docker pull ${{ secrets.DOCKER_REPO }}/refit-node
+          docker-compose up -d
+          docker image prune -f
+
