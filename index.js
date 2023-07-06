@@ -36,14 +36,18 @@ const counter = mongoose.model('counter', counterSchema);
 //채팅방 스키마 설정
 const roomSchema = new mongoose.Schema({
   roomId: { type: Number, unique: true },
-  participants: [String]
+  participants: [String],
+  postId: Number,
+  buyer: String,
+  seller: String
 });
 
 //채팅 스키마 설정
 const chatSchema = new mongoose.Schema({
   content: String,
   roomId: Number,
-  person: String
+  username: String,
+  time : Date
 });
 
 //채팅방 저장 전에 실행되는 pre hook
@@ -101,14 +105,19 @@ io.on('connection', (socket) => {
     const newMessage = new chat({
       content: message,
       roomId: roomId,
-      person: userId
+      username: userId,
+      time: new Date()
     });
 
     // 메시지 저장
     await newMessage.save(); //저장 메시지 생성
 
     // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
-    io.to(roomId).emit('message', userId, message);
+    io.to(roomId).emit('message', {
+      content: newMessage.content,
+      username: newMessage.username,
+      time: newMessage.time,
+    });
   });
 
   // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
@@ -144,13 +153,22 @@ app.get('/chat/room/all', async (req, res) => {
 
     // Chatroom 조회 (Read)
     chatroom.find({ participants: me })
-    .then((chatrooms) => {
-      const reducedChatrooms = chatrooms.map(chatroom => {
+    .then(async (chatrooms) => {
+      const reducedChatrooms = await Promise.all(chatrooms.map(async (chatroom) => {
+        // Define other
+        let other = (chatroom.buyer == me) ? chatroom.seller : chatroom.buyer;
+
+        // Fetch the last chat
+        let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
+
         return {
           roomId: chatroom.roomId,
-          participants: chatroom.participants
+          participants: chatroom.participants,
+          username: me,
+          other: other,
+          message: lastChat ? lastChat.content : null, // Returns null if no chat exists
         }
-      });
+      }));
       res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
     })
     .catch((err) => {
@@ -161,6 +179,43 @@ app.get('/chat/room/all', async (req, res) => {
     res.status(500).send(error.toString());
   }
 });
+
+
+// app.get('/chat/room/all', async (req, res) => {
+//   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
+
+//   //리소스에 접급
+//   try {
+//     const response = await axios.get(resource_url, {
+//       headers: {
+//         'Authorization': `${token}`
+//       }
+//     });
+
+//     // 유저 정보 수집
+//     const me = response.data.userId
+
+//     // Chatroom 조회 (Read)
+//     chatroom.find({ participants: me })
+//     .then((chatrooms) => {
+//       const reducedChatrooms = chatrooms.map(chatroom => {
+//         return {
+//           roomId: chatroom.roomId,
+//           participants: chatroom.participants,
+//           username: me,
+//           other: ,
+//         }
+//       });
+//       res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
+//     })
+//     .catch((err) => {
+//       console.error(err);
+//       res.status(500).send(err.toString());
+//     });
+//   } catch (error) {
+//     res.status(500).send(error.toString());
+//   }
+// });
 
 
 //채팅방 생성 API
@@ -178,9 +233,15 @@ app.post('/chat/room/create', async (req, res) => {
     // 유저 정보 수집
     const me = response.data.userId;
     const you = req.body.id;
+    const postId = req.body.postId;
 
     // Chatroom 조회 (Read)
-    const chatrooms = await chatroom.find({ participants: { $all: [me, you] } });
+    const chatrooms = await chatroom.find({
+      $and: [
+        { participants: { $all: [me, you] } },
+        { postId: postId }
+      ]
+    });
     
     if(chatrooms.length > 0){
       // 채팅방이 존재하므로 오류 발생
@@ -188,7 +249,7 @@ app.post('/chat/room/create', async (req, res) => {
     }
     
     // 채팅방이 존재하지 않으므로 생성
-    const newChatroom = new chatroom({participants: [me,you] });
+    const newChatroom = new chatroom({ participants: [me, you], postId: postId, buyer: me, seller: you });
     await newChatroom.save();
     
     res.send(response.data);
@@ -227,7 +288,9 @@ app.get('/chat/room/:roomId', async (req, res) => {
         const reducedChats = chats.map(chat => {
           return {
             content: chat.content,
-            person: chat.person
+            username: chat.username,
+            time: chat.time,
+            isMy: chat.username == me
           }
         });
         res.json(reducedChats);  // 조회된 chat들을 응답으로 전송
@@ -244,7 +307,7 @@ app.get('/chat/room/:roomId', async (req, res) => {
   }
 });
 
-//채팅방 삭제 API
+//채팅방 떠나기 API
 app.delete('/chat/room/:roomId/leave', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
   const roomId = req.params.roomId;  // route parameter로부터 roomId를 추출
