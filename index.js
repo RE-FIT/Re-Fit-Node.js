@@ -98,8 +98,20 @@ io.on('connection', (socket) => {
 
   //사용자가 메시지 보내면 일어나는 이벤트
   //사용자가 채팅 메시지를 보낼때 클라이언트에서 발생함, 이때 매개변수로 roomId, userId, message 전달
-  socket.on('message', async (roomId, userId, message) => {
+  socket.on('message', async (roomId, userId, otherId, message) => {
     console.log(`Message from user ${userId} in room ${roomId}: ${message}`);
+
+    // 채팅방 참여자 확인 및 추가
+    const room = await chatroom.findOne({ roomId: roomId });
+    if (room) {
+      if (!room.participants.includes(otherId)) {
+        room.participants.push(otherId);
+        await room.save();
+      }
+    } else {
+      console.log(`Room ${roomId} does not exist`);
+      return;
+    }
 
     // 새로운 메시지 생성
     const newMessage = new chat({
@@ -295,7 +307,7 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
           // participants가 비어있다면 채팅방 삭제
           if(chatroomToLeave.participants.length == 0) {
             Promise.all([
-              chatroomToLeave.remove(),
+              chatroom.deleteOne({ _id: chatroomToLeave._id }), // 채팅방 삭제
               chat.deleteMany({ roomId: roomId })  // 해당 roomId의 모든 채팅 삭제
             ])
             .then(() => {
