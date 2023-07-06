@@ -39,7 +39,9 @@ const roomSchema = new mongoose.Schema({
   participants: [String],
   postId: Number,
   buyer: String,
-  seller: String
+  seller: String,
+  buyer_enter: Date,
+  seller_enter: Date
 });
 
 //채팅 스키마 설정
@@ -106,6 +108,16 @@ io.on('connection', (socket) => {
     if (room) {
       if (!room.participants.includes(otherId)) {
         room.participants.push(otherId);
+
+        // otherId가 buyer일 경우
+        if (otherId == room.buyer) {
+          room.buyer_enter = new Date();
+        }
+        // otherId가 seller일 경우
+        else if (otherId == room.seller) {
+          room.seller_enter = new Date();
+        }
+
         await room.save();
       }
     } else {
@@ -223,7 +235,8 @@ app.post('/chat/room/create', async (req, res) => {
     }
     
     // 채팅방이 존재하지 않으므로 생성
-    const newChatroom = new chatroom({ participants: [me, you], postId: postId, buyer: me, seller: you });
+    const newChatroom = new chatroom({ participants: [me, you], postId: postId, 
+      buyer: me, seller: you, buyer_enter: new Date(), seller_enter: new Date()});
     await newChatroom.save();
     
     res.send(response.data);
@@ -254,10 +267,18 @@ app.get('/chat/room/:roomId', async (req, res) => {
 
     // 채팅방 참여 여부 확인
     const room = await chatroom.findOne({ roomId: roomId, participants: me });
-    
+
     if(room) {
-      // 채팅 내용 조회
-      chat.find({ roomId: roomId })
+      // buyer 또는 seller에 따른 enter time 설정
+      let enter_time;
+      if (me === room.buyer) {
+        enter_time = room.buyer_enter;
+      } else if (me === room.seller) {
+        enter_time = room.seller_enter;
+      }
+
+      // enter_time 이후의 채팅 내용 조회
+      chat.find({ roomId: roomId, time: { $gte: enter_time } })
       .then((chats) => {
         const reducedChats = chats.map(chat => {
           return {
