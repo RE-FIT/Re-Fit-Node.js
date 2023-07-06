@@ -176,47 +176,9 @@ app.get('/chat/room/all', async (req, res) => {
       res.status(500).send(err.toString());
     });
   } catch (error) {
-    res.status(500).send(error.toString());
+    res.status(400).json({ message: "엑세스 토큰이 유효하지 않습니다.", code: 40000 });
   }
 });
-
-
-// app.get('/chat/room/all', async (req, res) => {
-//   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
-
-//   //리소스에 접급
-//   try {
-//     const response = await axios.get(resource_url, {
-//       headers: {
-//         'Authorization': `${token}`
-//       }
-//     });
-
-//     // 유저 정보 수집
-//     const me = response.data.userId
-
-//     // Chatroom 조회 (Read)
-//     chatroom.find({ participants: me })
-//     .then((chatrooms) => {
-//       const reducedChatrooms = chatrooms.map(chatroom => {
-//         return {
-//           roomId: chatroom.roomId,
-//           participants: chatroom.participants,
-//           username: me,
-//           other: ,
-//         }
-//       });
-//       res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
-//     })
-//     .catch((err) => {
-//       console.error(err);
-//       res.status(500).send(err.toString());
-//     });
-//   } catch (error) {
-//     res.status(500).send(error.toString());
-//   }
-// });
-
 
 //채팅방 생성 API
 app.post('/chat/room/create', async (req, res) => {
@@ -232,7 +194,7 @@ app.post('/chat/room/create', async (req, res) => {
 
     // 유저 정보 수집
     const me = response.data.userId;
-    const you = req.body.id;
+    const you = req.body.other;
     const postId = req.body.postId;
 
     // Chatroom 조회 (Read)
@@ -257,7 +219,7 @@ app.post('/chat/room/create', async (req, res) => {
     if (error.message === "Chatroom already exists!") {
       res.status(400).json({ message: "채팅방이 이미 존재합니다", code: 50000 });
     } else {
-      res.status(500).json({ message: error.toString(), code: "INTERNAL_SERVER_ERROR" });
+      res.status(400).json({ message: "엑세스 토큰이 유효하지 않습니다.", code: 40000 });
     }
   }
 });
@@ -331,8 +293,11 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
         if(chatroomToLeave.participants.includes(me)) {
           chatroomToLeave.participants.pull(me);
           // participants가 비어있다면 채팅방 삭제
-          if(chatroomToLeave.participants.length === 0) {
-            chatroomToLeave.remove()
+          if(chatroomToLeave.participants.length == 0) {
+            Promise.all([
+              chatroomToLeave.remove(),
+              chat.deleteMany({ roomId: roomId })  // 해당 roomId의 모든 채팅 삭제
+            ])
             .then(() => {
               res.json({message: `Room with id ${roomId} deleted successfully`});  // 채팅방 삭제 성공 메시지 전송
             })
