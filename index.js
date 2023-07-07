@@ -243,21 +243,21 @@ app.post('/chat/room/create', async (req, res) => {
     // Chatroom 조회 (Read)
 
     // Chatroom 조회 (Read)
-    const chatroom = await chatroom.findOne({
+    const chatrooms = await chatroom.findOne({
       buyer: me,
       seller: you,
       postId: postId
     });
 
-    if(chatroom){
-      if(chatroom.participants.includes(me)){
+    if(chatrooms){
+      if(chatrooms.participants.includes(me)){
         // 채팅방에 이미 참여자(me)가 있으므로 오류 발생
         throw new Error("Chatroom already exists!");
       } else {
         // 채팅방에 참여자(me) 추가
-        chatroom.participants.push(me);
-        chatroom.buyer_enter = new Date();
-        await chatroom.save();
+        chatrooms.participants.push(me);
+        chatrooms.buyer_enter = new Date();
+        await chatrooms.save();
       }
     } else {
       // 채팅방이 존재하지 않으므로 생성
