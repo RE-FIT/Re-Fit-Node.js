@@ -221,25 +221,59 @@ app.post('/chat/room/create', async (req, res) => {
     const you = req.body.other;
     const postId = req.body.postId;
 
-    // Chatroom 조회 (Read)
-    const chatrooms = await chatroom.find({
-      $and: [
-        { participants: { $all: [me, you] } },
-        { postId: postId }
-      ]
-    });
+    // // Chatroom 조회 (Read)
+    // const chatrooms = await chatroom.find({
+    //   $and: [
+    //     { participants: { $all: [me, you] } },
+    //     { postId: postId }
+    //   ]
+    // });
     
-    if(chatrooms.length > 0){
-      // 채팅방이 존재하므로 오류 발생
-      throw new Error("Chatroom already exists!");
+    // if(chatrooms.length > 0){
+    //   // 채팅방이 존재하므로 오류 발생
+    //   throw new Error("Chatroom already exists!");
+    // }
+    
+    // // 채팅방이 존재하지 않으므로 생성
+    // const newChatroom = new chatroom({ participants: [me, you], postId: postId, 
+    //   buyer: me, seller: you, buyer_enter: new Date(), seller_enter: new Date()});
+    // await newChatroom.save();
+    
+    // res.send(response.data);
+    // Chatroom 조회 (Read)
+
+    // Chatroom 조회 (Read)
+    const chatroom = await chatroom.findOne({
+      buyer: me,
+      seller: you,
+      postId: postId
+    });
+
+    if(chatroom){
+      if(chatroom.participants.includes(me)){
+        // 채팅방에 이미 참여자(me)가 있으므로 오류 발생
+        throw new Error("Chatroom already exists!");
+      } else {
+        // 채팅방에 참여자(me) 추가
+        chatroom.participants.push(me);
+        chatroom.buyer_enter = new Date();
+        await chatroom.save();
+      }
+    } else {
+      // 채팅방이 존재하지 않으므로 생성
+      const newChatroom = new chatroom({
+        participants: [me, you], 
+        postId: postId, 
+        buyer: me, 
+        seller: you, 
+        buyer_enter: new Date(), 
+        seller_enter: new Date()
+      });
+      await newChatroom.save();
     }
     
-    // 채팅방이 존재하지 않으므로 생성
-    const newChatroom = new chatroom({ participants: [me, you], postId: postId, 
-      buyer: me, seller: you, buyer_enter: new Date(), seller_enter: new Date()});
-    await newChatroom.save();
-    
     res.send(response.data);
+    
   } catch (error) {
     if (error.message === "Chatroom already exists!") {
       res.status(400).json({ message: "채팅방이 이미 존재합니다", code: 50000 });
