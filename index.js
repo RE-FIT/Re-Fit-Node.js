@@ -1,7 +1,7 @@
-const express = require('express');
-const axios = require('axios');
+const express = require('express'); //RESTful API 기능을 제공
+const axios = require('axios'); //Promise를 사용하여 비동기적으로 데이터를 처리
 
-//ENV
+//환경 변수를 .env 파일에서 로드하여 Node.js 애플리케이션에서 사용할 수 있게 해주는 라이브러리
 require('dotenv').config()
 
 const app = express();
@@ -10,10 +10,11 @@ const port = process.env.PORT;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const resource_url = process.env.OAUTH_URL;  // 스프링 서버의 보호된 리소스 URL
+//Spring OAuth2.0 서버 URL
+const resource_url = process.env.OAUTH_URL; 
 
-//mongoose
-const mongoose = require('mongoose');
+//Mongoose
+const mongoose = require('mongoose'); //MongoDB를 쉽게 사용하게 해주는 
 
 //mongoDB Connect
 mongoose.connect(process.env.MONGO_DB, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -52,12 +53,13 @@ const chatSchema = new mongoose.Schema({
   time : Date
 });
 
-//채팅방 저장 전에 실행되는 pre hook
-roomSchema.pre('save', async function(next) {
-  // only increment when the document is new
+//pre와 save 이벤트를 사용해 DB에 채팅방이 저장되기 전에 실행되는 hook
+roomSchema.pre('save', async function(next) { //async를 통해 비동기 함수 선언
+  // 채팅방이 새로 생성되는 채팅방일때만 roomId를 부여
   if (this.isNew) {
     var doc = this;
     try {
+      //await을 통해 counter.findByIdAndUpdate()을 기다림, 즉 counterDoc가 반환되면 비동기 작업이 실행됨
       const counterDoc = await counter.findByIdAndUpdate(
         {_id: 'roomId'},
         {$inc: {seq: 1}},
@@ -164,7 +166,14 @@ server.listen(port, () => {
 app.get('/chat/room/all', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
 
+  //엑세스 토큰이 존재하지 않을 경우
+  if (!token) {
+    res.status(400).json({ message: "JWT Token이 존재하지 않습니다.", code: 10100 });
+    return;
+  }
+
   //리소스에 접급
+  //await을 통해 해당 요청이 마무리될 때까지 함수 실행을 멈춤
   try {
     const response = await axios.get(resource_url, {
       headers: {
@@ -178,6 +187,7 @@ app.get('/chat/room/all', async (req, res) => {
     // Chatroom 조회 (Read)
     chatroom.find({ participants: me })
     .then(async (chatrooms) => {
+      //Promise.all과 map을 통해 각 chatroom에 대해 반환값을 가져오는 것을 병렬로 실행
       const reducedChatrooms = await Promise.all(chatrooms.map(async (chatroom) => {
         // Define other
         let other = (chatroom.buyer == me) ? chatroom.seller : chatroom.buyer;
@@ -195,18 +205,23 @@ app.get('/chat/room/all', async (req, res) => {
       }));
       res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
     })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send(err.toString());
+    .catch((err) => {  
+      res.status(500).json({ message: "채팅방을 불러올 수 없습니다.", code: 50000 });
     });
   } catch (error) {
-    res.status(400).json({ message: "엑세스 토큰이 유효하지 않습니다.", code: 40000 });
+    res.status(400).json({ message: "유효하지 않은 JWT Token 입니다.", code: 10101 });
   }
 });
 
 //채팅방 생성 API
 app.post('/chat/room/create', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
+
+  //엑세스 토큰이 존재하지 않을 경우
+  if (!token) {
+    res.status(400).json({ message: "JWT Token이 존재하지 않습니다.", code: 10100 });
+    return;
+  }
 
   //리소스에 접급
   try {
@@ -220,27 +235,6 @@ app.post('/chat/room/create', async (req, res) => {
     const me = response.data.userId;
     const you = req.body.other;
     const postId = req.body.postId;
-
-    // // Chatroom 조회 (Read)
-    // const chatrooms = await chatroom.find({
-    //   $and: [
-    //     { participants: { $all: [me, you] } },
-    //     { postId: postId }
-    //   ]
-    // });
-    
-    // if(chatrooms.length > 0){
-    //   // 채팅방이 존재하므로 오류 발생
-    //   throw new Error("Chatroom already exists!");
-    // }
-    
-    // // 채팅방이 존재하지 않으므로 생성
-    // const newChatroom = new chatroom({ participants: [me, you], postId: postId, 
-    //   buyer: me, seller: you, buyer_enter: new Date(), seller_enter: new Date()});
-    // await newChatroom.save();
-    
-    // res.send(response.data);
-    // Chatroom 조회 (Read)
 
     // Chatroom 조회 (Read)
     const chatrooms = await chatroom.findOne({
@@ -276,9 +270,9 @@ app.post('/chat/room/create', async (req, res) => {
     
   } catch (error) {
     if (error.message === "Chatroom already exists!") {
-      res.status(400).json({ message: "채팅방이 이미 존재합니다", code: 50000 });
+      res.status(400).json({ message: "채팅방이 이미 존재합니다", code: 60000 });
     } else {
-      res.status(400).json({ message: "엑세스 토큰이 유효하지 않습니다.", code: 40000 });
+      res.status(400).json({ message: "유효하지 않은 JWT Token 입니다.", code: 10101 });
     }
   }
 });
@@ -287,6 +281,12 @@ app.post('/chat/room/create', async (req, res) => {
 app.get('/chat/room/:roomId', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
   const roomId = req.params.roomId;  // route parameter로부터 roomId를 추출
+
+  //엑세스 토큰이 존재하지 않을 경우
+  if (!token) {
+    res.status(400).json({ message: "JWT Token이 존재하지 않습니다.", code: 10100 });
+    return;
+  }
 
   //리소스에 접급
   try {
@@ -325,14 +325,13 @@ app.get('/chat/room/:roomId', async (req, res) => {
         res.json(reducedChats);  // 조회된 chat들을 응답으로 전송
       })
       .catch((err) => {
-        console.error(err);
-        res.status(500).send(err.toString());
+        res.status(500).json({ message: "채팅 내용을 불러올 수 없습니다.", code: 50001 });
       });
     } else {
-      res.status(404).send('Room not found or you are not participant');  // roomId에 해당하는 방이 없거나, 사용자가 참여하지 않은 방인 경우
+      res.status(400).json({ message: "채팅방이 존재하지 않습니다.", code: 60001 });  // roomId에 해당하는 방이 없거나, 사용자가 참여하지 않은 방인 경우
     }
   } catch (error) {
-    res.status(500).send(error.toString());
+    res.status(400).json({ message: "유효하지 않은 JWT Token 입니다.", code: 10101 });
   }
 });
 
@@ -341,6 +340,12 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
   const token = req.headers.authorization;  // 헤더에서 액세스 토큰 추출
   const roomId = req.params.roomId;  // route parameter로부터 roomId를 추출
 
+  //엑세스 토큰이 존재하지 않을 경우
+  if (!token) {
+    res.status(400).json({ message: "JWT Token이 존재하지 않습니다.", code: 10100 });
+    return;
+  }
+  
   //리소스에 접급
   try {
     const response = await axios.get(resource_url, {
@@ -369,8 +374,7 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
               res.json({message: `Room with id ${roomId} deleted successfully`});  // 채팅방 삭제 성공 메시지 전송
             })
             .catch((err) => {
-              console.error(err);
-              res.status(500).send(err.toString());
+              res.status(500).json({ message: "채팅방을 삭제할 수 없습니다.", code: 50002 });
             });
           } else {
             chatroomToLeave.save()
@@ -378,22 +382,20 @@ app.delete('/chat/room/:roomId/leave', async (req, res) => {
               res.json({message: `User with id ${me} left the room successfully`});  // 참여자 리스트에서 제거 성공 메시지 전송
             })
             .catch((err) => {
-              console.error(err);
-              res.status(500).send(err.toString());
+              res.status(500).json({ message: "채팅방을 나가지 못했습니다.", code: 50003 });
             });
           }
         } else {
-          res.status(400).send('User not found in the room');  // 참여자 리스트에 없는 경우
+          res.status(400).json({ message: "채팅방에 참여하고 있지 않습니다.", code: 60002 });  // 참여자 리스트에 없는 경우
         }
       } else {
-        res.status(404).send('Room not found');  // roomId에 해당하는 방이 없는 경우
+        res.status(400).json({ message: "채팅방을 찾을 수 없습니다.", code: 60002 });  // roomId에 해당하는 방이 없는 경우
       }
     })
     .catch((err) => {
-      console.error(err);
-      res.status(500).send(err.toString());
+      res.status(500).json({ message: "채팅방을 찾을 수 없습니다.", code: 50004 });
     });
   } catch (error) {
-    res.status(500).send(error.toString());
+    res.status(400).json({ message: "유효하지 않은 JWT Token 입니다.", code: 10101 });
   }
 });
