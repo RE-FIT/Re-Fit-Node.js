@@ -1,5 +1,6 @@
 const express = require('express'); //RESTful API 기능을 제공
 const axios = require('axios'); //Promise를 사용하여 비동기적으로 데이터를 처리
+const sockets = require('./socket');
 
 const { chat, chatroom } = require('./schemas');
 
@@ -89,75 +90,76 @@ const socketIo = require('socket.io');
 // 기존의 'app.listen' 대신에 다음 코드를 사용합니다.
 const server = http.createServer(app);
 const io = socketIo(server);
+sockets(io)
 
-// Socket.IO 이벤트 핸들러 설정, 클라이언트와 서버가 연결되면 connection 이벤트가 발생
-io.on('connection', (socket) => {
+// // Socket.IO 이벤트 핸들러 설정, 클라이언트와 서버가 연결되면 connection 이벤트가 발생
+// io.on('connection', (socket) => {
 
-  console.log("connect success")
+//   console.log("connect success")
 
-  // //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
-  // //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
-  socket.on('joinRoom', (roomId, userId) => {
-    socket.join(roomId); //소켓을 roomId에 지정된 방에 조인
-    console.log(`User ${userId} joined room ${roomId}`);
-  });
+//   // //클라이언트가 joinRoom 이벤트를 보내면(즉 특정 방에 참여하면) 처리하는 핸들러
+//   // //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
+//   socket.on('joinRoom', (roomId, userId) => {
+//     socket.join(roomId); //소켓을 roomId에 지정된 방에 조인
+//     console.log(`User ${userId} joined room ${roomId}`);
+//   });
 
-  //사용자가 메시지 보내면 일어나는 이벤트
-  //사용자가 채팅 메시지를 보낼때 클라이언트에서 발생함, 이때 매개변수로 roomId, userId, message 전달
-  socket.on('message', async (roomId, userId, otherId, message) => {
-    console.log(`Message from user ${userId} in room ${roomId}: ${message}`);
+//   //사용자가 메시지 보내면 일어나는 이벤트
+//   //사용자가 채팅 메시지를 보낼때 클라이언트에서 발생함, 이때 매개변수로 roomId, userId, message 전달
+//   socket.on('message', async (roomId, userId, otherId, message) => {
+//     console.log(`Message from user ${userId} in room ${roomId}: ${message}`);
 
-    // 채팅방 참여자 확인 및 추가
-    const room = await chatroom.findOne({ roomId: roomId });
-    if (room) {
-      if (!room.participants.includes(otherId)) {
-        room.participants.push(otherId);
+//     // 채팅방 참여자 확인 및 추가
+//     const room = await chatroom.findOne({ roomId: roomId });
+//     if (room) {
+//       if (!room.participants.includes(otherId)) {
+//         room.participants.push(otherId);
 
-        // otherId가 buyer일 경우
-        if (otherId == room.buyer) {
-          room.buyer_enter = new Date();
-        }
-        // otherId가 seller일 경우
-        else if (otherId == room.seller) {
-          room.seller_enter = new Date();
-        }
+//         // otherId가 buyer일 경우
+//         if (otherId == room.buyer) {
+//           room.buyer_enter = new Date();
+//         }
+//         // otherId가 seller일 경우
+//         else if (otherId == room.seller) {
+//           room.seller_enter = new Date();
+//         }
 
-        await room.save();
-      }
-    } else {
-      console.log(`Room ${roomId} does not exist`);
-      return;
-    }
+//         await room.save();
+//       }
+//     } else {
+//       console.log(`Room ${roomId} does not exist`);
+//       return;
+//     }
 
-    // 새로운 메시지 생성
-    const newMessage = new chat({
-      content: message,
-      roomId: roomId,
-      username: userId,
-      time: new Date()
-    });
+//     // 새로운 메시지 생성
+//     const newMessage = new chat({
+//       content: message,
+//       roomId: roomId,
+//       username: userId,
+//       time: new Date()
+//     });
 
-    // 메시지 저장
-    await newMessage.save(); //저장 메시지 생성
+//     // 메시지 저장
+//     await newMessage.save(); //저장 메시지 생성
 
-    // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
-    io.to(roomId).emit('message', {
-      content: newMessage.content,
-      username: newMessage.username,
-      time: newMessage.time,
-    });
-  });
+//     // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
+//     io.to(roomId).emit('message', {
+//       content: newMessage.content,
+//       username: newMessage.username,
+//       time: newMessage.time,
+//     });
+//   });
 
-  // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
-  socket.on('leaveRoom', (roomId, userId) => {
-    socket.leave(roomId);
-    console.log(`User ${userId} left room ${roomId}`);
-  });
+//   // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
+//   socket.on('leaveRoom', (roomId, userId) => {
+//     socket.leave(roomId);
+//     console.log(`User ${userId} left room ${roomId}`);
+//   });
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-  });
-});
+//   socket.on('disconnect', () => {
+//     console.log('user disconnected');
+//   });
+// });
 
 server.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`)
