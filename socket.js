@@ -26,11 +26,11 @@ module.exports = (io) => {
 
                     // otherId가 buyer일 경우
                     if (otherId == room.buyer) {
-                    room.buyer_enter = new Date();
+                        room.buyer_enter = new Date();
                     }
                     // otherId가 seller일 경우
                     else if (otherId == room.seller) {
-                    room.seller_enter = new Date();
+                        room.seller_enter = new Date();
                     }
 
                     await room.save();
@@ -42,10 +42,10 @@ module.exports = (io) => {
 
             // 새로운 메시지 생성
             const newMessage = new chat({
-            content: message,
-            roomId: roomId,
-            username: userId,
-            time: new Date()
+                content: message,
+                roomId: roomId,
+                username: userId,
+                time: new Date()
             });
 
             // 메시지 저장
