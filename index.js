@@ -1,6 +1,8 @@
 const express = require('express'); //RESTful API 기능을 제공
 const axios = require('axios'); //Promise를 사용하여 비동기적으로 데이터를 처리
 
+const { chat, chatroom } = require('./schemas');
+
 //환경 변수를 .env 파일에서 로드하여 Node.js 애플리케이션에서 사용할 수 있게 해주는 라이브러리
 require('dotenv').config()
 
@@ -14,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 const resource_url = process.env.OAUTH_URL; 
 
 //Mongoose
-const mongoose = require('mongoose'); //MongoDB를 쉽게 사용하게 해주는 
+const mongoose = require('mongoose'); //MongoDB를 쉽게 사용하게 해주는
 
 //mongoDB Connect
 mongoose.connect(process.env.MONGO_DB, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -26,59 +28,59 @@ db.once('open', function() {
   console.log("Connected to MongoDB!");
 });
 
-//카운터 스키마 설정
-const counterSchema = mongoose.Schema({
-  _id: { type: String, required: true },
-  seq: { type: Number, default: 0 }
-});
+// //카운터 스키마 설정
+// const counterSchema = mongoose.Schema({
+//   _id: { type: String, required: true },
+//   seq: { type: Number, default: 0 }
+// });
 
-const counter = mongoose.model('counter', counterSchema);
+// const counter = mongoose.model('counter', counterSchema);
 
-//채팅방 스키마 설정
-const roomSchema = new mongoose.Schema({
-  roomId: { type: Number, unique: true },
-  participants: [String],
-  postId: Number,
-  buyer: String,
-  seller: String,
-  buyer_enter: Date,
-  seller_enter: Date
-});
+// //채팅방 스키마 설정
+// const roomSchema = new mongoose.Schema({
+//   roomId: { type: Number, unique: true },
+//   participants: [String],
+//   postId: Number,
+//   buyer: String,
+//   seller: String,
+//   buyer_enter: Date,
+//   seller_enter: Date
+// });
 
-//채팅 스키마 설정
-const chatSchema = new mongoose.Schema({
-  content: String,
-  roomId: Number,
-  username: String,
-  time : Date
-});
+// //채팅 스키마 설정
+// const chatSchema = new mongoose.Schema({
+//   content: String,
+//   roomId: Number,
+//   username: String,
+//   time : Date
+// });
 
-//pre와 save 이벤트를 사용해 DB에 채팅방이 저장되기 전에 실행되는 hook
-roomSchema.pre('save', async function(next) { //async를 통해 비동기 함수 선언
-  // 채팅방이 새로 생성되는 채팅방일때만 roomId를 부여
-  if (this.isNew) {
-    var doc = this;
-    try {
-      //await을 통해 counter.findByIdAndUpdate()을 기다림, 즉 counterDoc가 반환되면 비동기 작업이 실행됨
-      const counterDoc = await counter.findByIdAndUpdate(
-        {_id: 'roomId'},
-        {$inc: {seq: 1}},
-        {new: true, upsert: true}
-      );
+// //pre와 save 이벤트를 사용해 DB에 채팅방이 저장되기 전에 실행되는 hook
+// roomSchema.pre('save', async function(next) { //async를 통해 비동기 함수 선언
+//   // 채팅방이 새로 생성되는 채팅방일때만 roomId를 부여
+//   if (this.isNew) {
+//     var doc = this;
+//     try {
+//       //await을 통해 counter.findByIdAndUpdate()을 기다림, 즉 counterDoc가 반환되면 비동기 작업이 실행됨
+//       const counterDoc = await counter.findByIdAndUpdate(
+//         {_id: 'roomId'},
+//         {$inc: {seq: 1}},
+//         {new: true, upsert: true}
+//       );
   
-      doc.roomId = counterDoc.seq;
-      next();
-    } catch (error) {
-      return next(error);
-    }
-  } else {
-    next();
-  }
-});
+//       doc.roomId = counterDoc.seq;
+//       next();
+//     } catch (error) {
+//       return next(error);
+//     }
+//   } else {
+//     next();
+//   }
+// });
 
-//스키마 생성
-const chat = mongoose.model('chat', chatSchema);
-const chatroom = mongoose.model('chatroom', roomSchema);
+// //스키마 생성
+// const chat = mongoose.model('chat', chatSchema);
+// const chatroom = mongoose.model('chatroom', roomSchema);
 
 // Socket IO 패키지 추가
 const http = require('http');
@@ -235,6 +237,9 @@ app.post('/chat/room/create', async (req, res) => {
     const me = response.data.userId;
     const you = req.body.other;
     const postId = req.body.postId;
+
+    console.log(response.data)
+    console.log(you)
 
     // Chatroom 조회 (Read)
     const chatrooms = await chatroom.findOne({
