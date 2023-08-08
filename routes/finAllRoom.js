@@ -45,7 +45,9 @@ router.get('/', async (req, res) => {
             participants: chatroom.participants,
             username: me,
             other: other,
-            message: lastChat ? lastChat.content : null, // Returns null if no chat exists
+            message: lastChat ? lastChat.content : null,
+            time: lastChat ? lastChat.time : null,
+            remain: 10
           }
         }));
         res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
