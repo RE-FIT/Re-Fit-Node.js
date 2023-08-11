@@ -41,13 +41,18 @@ router.post('/', async (req, res) => {
 
     if(chatrooms){
       if(chatrooms.participants.includes(me)){
-        // 채팅방에 이미 참여자(me)가 있으므로 오류 발생
-        throw new Error("Chatroom already exists!");
+
+        res.json({ roomId: chatrooms.roomId });
+        return
+
       } else {
         // 채팅방에 참여자(me) 추가
         chatrooms.participants.push(me);
         chatrooms.buyer_enter = new Date();
         await chatrooms.save();
+
+        res.json({ roomId: chatrooms.roomId });
+        return
       }
     } else {
       // 채팅방이 존재하지 않으므로 생성
@@ -60,9 +65,10 @@ router.post('/', async (req, res) => {
         seller_enter: new Date()
       });
       await newChatroom.save();
+
+      res.json({ roomId: newChatroom.roomId });
+      return
     }
-    
-    res.send(response.data);
     
   } catch (error) {
     if (error.message === "Chatroom already exists!") {
