@@ -3,7 +3,7 @@ const { chat, chatroom } = require('./schemas');
 
 var admin = require('firebase-admin');
 
-var serviceAccount = require('./serviceAccountKey.json');
+var serviceAccount = require('./firebaseConfig');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -12,19 +12,18 @@ admin.initializeApp({
 
 const getFcm = async (otherId) => {
     try {
-        const response = await axios.get('http://www.umc-refit.com/oauth2/fcm', {
+        const response = await axios.get("http://www.umc-refit.com/oauth2/fcm", {
             headers: {
-                otherId
+                'otherId': encodeURIComponent(otherId)
             }
         });
-        
         if (response.status === 200) {
             return {
                 otherFcm: response.data.otherFcm
             };
         }
     } catch (error) {
-        console.error('Failed to fetch FCM tokens:', error);
+        console.error('Failed to fetch FCM tokens:');
         return null;
     }
 };
@@ -107,7 +106,7 @@ module.exports = (io) => {
             });
 
             if (otherFcm) {
-                await sendNotificationToToken(otherFcm, 'New Message', `${userId}: ${newMessage.content}`);
+                await sendNotificationToToken(otherFcm, userId, newMessage.content);
             } else {
                 console.error('No valid FCM token available');
             }
