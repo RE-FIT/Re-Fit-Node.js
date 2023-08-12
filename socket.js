@@ -1,4 +1,50 @@
+const axios = require('axios');
 const { chat, chatroom } = require('./schemas');
+
+var admin = require('firebase-admin');
+
+var serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://refit-b8e5f.firebaseio.com"
+});
+
+const getFcm = async (otherId) => {
+    try {
+        const response = await axios.get('http://www.umc-refit.com/oauth2/fcm', {
+            headers: {
+                otherId
+            }
+        });
+        
+        if (response.status === 200) {
+            return {
+                otherFcm: response.data.otherFcm
+            };
+        }
+    } catch (error) {
+        console.error('Failed to fetch FCM tokens:', error);
+        return null;
+    }
+};
+
+const sendNotificationToToken = async (fcmToken, title, body) => {
+    const message = {
+        notification: {
+            title: title,
+            body: body
+        },
+        token: fcmToken
+    };
+
+    try {
+        const response = await admin.messaging().send(message);
+        console.log('Successfully sent message:', response);
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+}
 
 module.exports = (io) => {
     
@@ -51,12 +97,20 @@ module.exports = (io) => {
             // 메시지 저장
             await newMessage.save(); //저장 메시지 생성
 
+            const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
+
             // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
             io.to(roomId).emit('message', {
                 content: newMessage.content,
                 username: newMessage.username,
                 time: newMessage.time,
             });
+
+            if (otherFcm) {
+                await sendNotificationToToken(otherFcm, 'New Message', `${userId}: ${newMessage.content}`);
+            } else {
+                console.error('No valid FCM token available');
+            }
         });
 
         // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러

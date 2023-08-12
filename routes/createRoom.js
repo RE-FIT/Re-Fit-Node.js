@@ -30,9 +30,6 @@ router.post('/', async (req, res) => {
     const postId = req.body.postId;
     const postType = req.body.postType;
 
-    console.log(response.data)
-    console.log(you)
-
     // Chatroom 조회 (Read)
     const chatrooms = await chatroom.findOne({
       buyer: me,
