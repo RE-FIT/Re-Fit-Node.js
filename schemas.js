@@ -13,6 +13,7 @@ const roomSchema = new mongoose.Schema({
   roomId: { type: Number, unique: true },
   participants: [String],
   postId: Number,
+  postType: Number,
   buyer: String,
   seller: String,
   buyer_enter: Date,

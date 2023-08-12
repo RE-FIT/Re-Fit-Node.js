@@ -28,6 +28,7 @@ router.post('/', async (req, res) => {
     const me = response.data.userId;
     const you = req.body.other;
     const postId = req.body.postId;
+    const postType = req.body.postType;
 
     console.log(response.data)
     console.log(you)
@@ -59,7 +60,8 @@ router.post('/', async (req, res) => {
       const newChatroom = new chatroom({
         participants: [me, you], 
         postId: postId, 
-        buyer: me, 
+        postType: postType,
+        buyer: me,
         seller: you, 
         buyer_enter: new Date(), 
         seller_enter: new Date()

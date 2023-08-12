@@ -43,6 +43,8 @@ router.get('/', async (req, res) => {
           return {
             roomId: chatroom.roomId,
             participants: chatroom.participants,
+            postType: chatroom.postType,
+            seller: chatroom.seller,
             username: me,
             other: other,
             message: lastChat ? lastChat.content : null,
