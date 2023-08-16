@@ -34,8 +34,10 @@ router.get('/', async (req, res) => {
       .then(async (chatrooms) => {
         //Promise.all과 map을 통해 각 chatroom에 대해 반환값을 가져오는 것을 병렬로 실행
         const reducedChatrooms = await Promise.all(chatrooms.map(async (chatroom) => {
-          // Define other
+          
           let other = (chatroom.buyer == me) ? chatroom.seller : chatroom.buyer;
+          let otherImageResponse = await axios.get(resource_url + `/image?otherId=${other}`);
+          let otherImage = otherImageResponse.data.otherImage
   
           // Fetch the last chat
           let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
@@ -47,11 +49,14 @@ router.get('/', async (req, res) => {
             seller: chatroom.seller,
             username: me,
             other: other,
+            otherImage: otherImage,
             message: lastChat ? lastChat.content : null,
             time: lastChat ? lastChat.time : null,
             remain: 10
           }
         }));
+
+        reducedChatrooms.sort((a, b) => (b.time || 0) - (a.time || 0));
         res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
       })
       .catch((err) => {  
