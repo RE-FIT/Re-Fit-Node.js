@@ -36,10 +36,10 @@ router.get('/', async (req, res) => {
         const reducedChatrooms = await Promise.all(chatrooms.map(async (chatroom) => {
           
           let other = (chatroom.buyer == me) ? chatroom.seller : chatroom.buyer;
-          let otherImageResponse = await axios.get(resource_url + `/image?otherId=${other}`);
+          let otherEncoded = encodeURIComponent(other);
+          let otherImageResponse = await axios.get(resource_url + `/image?otherId=${otherEncoded}`);
           let otherImage = otherImageResponse.data.otherImage
   
-          // Fetch the last chat
           let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
   
           return {
