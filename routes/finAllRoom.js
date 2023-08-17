@@ -37,14 +37,16 @@ router.get('/', async (req, res) => {
           
           let other = (chatroom.buyer == me) ? chatroom.seller : chatroom.buyer;
           let otherEncoded = encodeURIComponent(other);
-          let otherImageResponse = await axios.get(resource_url + `/image?otherId=${otherEncoded}`);
+          let otherImageResponse = await axios.get(resource_url + `/image?otherId=${otherEncoded}&postId=${chatroom.postId}`);
           let otherImage = otherImageResponse.data.otherImage
+          let postState = otherImageResponse.data.postState
   
           let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
   
           return {
             roomId: chatroom.roomId,
             postId: chatroom.postId,
+            postState: postState,
             participants: chatroom.participants,
             postType: chatroom.postType,
             seller: chatroom.seller,
