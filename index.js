@@ -27,11 +27,13 @@ const finAllRoom = require('./routes/finAllRoom');
 const createRoom = require('./routes/createRoom');
 const findRoom = require('./routes/findRoom');
 const leaveRoom = require('./routes/leaveRoom');
+const checkRoom = require('./routes/checkRoom');
 
 app.use('/chat/room/all', finAllRoom);
 app.use('/chat/room/create', createRoom);
 app.use('/chat/room', findRoom);
 app.use('/chat/room', leaveRoom);
+app.use('/chat/room', checkRoom);
 
 server.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`)
