@@ -48,7 +48,8 @@ router.get('/:roomId', async (req, res) => {
               content: chat.content,
               username: chat.username,
               time: chat.time,
-              isMy: chat.username == me
+              isMy: chat.username == me,
+              notificationId: chat.notificationId
             }
           });
           res.json(reducedChats);  // 조회된 chat들을 응답으로 전송
