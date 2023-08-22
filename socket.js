@@ -28,14 +28,14 @@ const getFcm = async (otherId) => {
     }
 };
 
-const sendNotificationToToken = async (fcmToken, title, body, roomId) => {
+const sendNotificationToToken = async (fcmToken, title, body, notificationId) => {
     const message = {
         notification: {
             title: title,
             body: body
         },
         data: {
-            roomId: roomId
+            notificationId: notificationId
         },
         token: fcmToken
     };
@@ -46,6 +46,15 @@ const sendNotificationToToken = async (fcmToken, title, body, roomId) => {
     } catch (error) {
         console.error('Error sending message:', error);
     }
+}
+
+function generateRandomId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < 3; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
 
 module.exports = (io) => {
@@ -91,12 +100,15 @@ module.exports = (io) => {
                 return;
             }
 
+            const notificationId = generateRandomId();
+
             // 새로운 메시지 생성
             const newMessage = new chat({
                 content: message,
                 roomId: roomId,
                 username: userId,
-                time: new Date()
+                time: new Date(),
+                notificationId: notificationId
             });
 
             // 메시지 저장
@@ -110,7 +122,7 @@ module.exports = (io) => {
                 const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
             
                 if (otherFcm) {
-                    await sendNotificationToToken(otherFcm, userId, newMessage.content, roomId);
+                    await sendNotificationToToken(otherFcm, userId, newMessage.content, notificationId);
                 } else {
                     console.error('No valid FCM token available');
                 }
