@@ -48,15 +48,6 @@ const sendNotificationToToken = async (fcmToken, title, body, notificationId) =>
     }
 }
 
-function generateRandomId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let result = '';
-    for (let i = 0; i < 3; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
 module.exports = (io) => {
     
     io.on('connection', (socket) => {
@@ -100,7 +91,7 @@ module.exports = (io) => {
                 return;
             }
 
-            const notificationId = generateRandomId();
+            const notificationId = Math.floor(Math.random() * 1000000);
 
             // 새로운 메시지 생성
             const newMessage = new chat({
