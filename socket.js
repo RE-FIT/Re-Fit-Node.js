@@ -123,8 +123,19 @@ module.exports = (io) => {
         });
 
         // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
-        socket.on('leaveRoom', (roomId, userId) => {
+        socket.on('leaveRoom', async (roomId, userId) => {
             socket.leave(roomId);
+
+            const room = await chatroom.findOne({ roomId: roomId });
+            if (room) {
+                if (userId === room.buyer) {
+                    room.buyer_out = new Date();
+                } else if (userId === room.seller) {
+                    room.seller_out = new Date();
+                }
+                await room.save();
+            }
+
             console.log(`User ${userId} left room ${roomId}`);
         });
 
