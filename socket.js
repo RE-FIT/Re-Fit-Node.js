@@ -76,10 +76,12 @@ module.exports = (io) => {
                     // otherId가 buyer일 경우
                     if (otherId == room.buyer) {
                         room.buyer_enter = new Date();
+                        room.buyer_out = new Date();
                     }
                     // otherId가 seller일 경우
                     else if (otherId == room.seller) {
                         room.seller_enter = new Date();
+                        room.seller_out = new Date();
                     }
 
                     await room.save();
