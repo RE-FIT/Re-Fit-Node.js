@@ -63,7 +63,7 @@ module.exports = (io) => {
 
         //사용자가 메시지 보내면 일어나는 이벤트
         //사용자가 채팅 메시지를 보낼때 클라이언트에서 발생함, 이때 매개변수로 roomId, userId, message 전달
-        socket.on('message', async (roomId, userId, otherId, message) => {
+        socket.on('message', async (roomId, userId, otherId, message, notificationId) => {
             console.log(`Message from user ${userId} in room ${roomId}: ${message}`);
 
             // 채팅방 참여자 확인 및 추가
@@ -90,8 +90,6 @@ module.exports = (io) => {
                 console.log(`Room ${roomId} does not exist`);
                 return;
             }
-
-            const notificationId = Math.floor(Math.random() * 1000000);
 
             // 새로운 메시지 생성
             const newMessage = new chat({
@@ -124,6 +122,7 @@ module.exports = (io) => {
                 content: newMessage.content,
                 username: newMessage.username,
                 time: newMessage.time,
+                notificationId: notificationId
             });
         });
 

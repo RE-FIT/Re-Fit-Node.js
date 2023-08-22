@@ -28,7 +28,7 @@ const chatSchema = new mongoose.Schema({
   roomId: Number,
   username: String,
   time : Date,
-  notificationId : Number
+  notificationId : String
 });
 
 roomSchema.pre('save', async function(next) {
