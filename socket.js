@@ -54,6 +54,7 @@ module.exports = (io) => {
         //사용자가 특정 채팅방에 참여하려고할때 클라이언트에서 발생함, 이때 roomId와 userId를 매개변수로 전달
         socket.on('joinRoom', (roomId, userId) => {
             socket.join(roomId); //소켓을 roomId에 지정된 방에 조인
+            socket.userId = userId; //사용자 ID를 소켓에 연결
             console.log(`User ${userId} joined room ${roomId}`);
         });
 
@@ -96,7 +97,19 @@ module.exports = (io) => {
             // 메시지 저장
             await newMessage.save(); //저장 메시지 생성
 
-            const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
+            const socketsInRoom = await io.in(roomId).allSockets(); //모든 소켓의 회원 ID 목록을 가지고 옴
+            const isInRoom = Array.from(socketsInRoom).some(socketId => io.sockets.sockets.get(socketId).userId === otherId); // 해당 방에 otherId가 있는지 확인
+            
+            //만약 방에 있다면, 알림 전송
+            if (isInRoom) {
+                const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
+            
+                if (otherFcm) {
+                    await sendNotificationToToken(otherFcm, userId, newMessage.content);
+                } else {
+                    console.error('No valid FCM token available');
+                }
+            }
 
             // 같은 채팅방에 있는 모든 클라이언트에게 메시지 전송
             io.to(roomId).emit('message', {
@@ -104,12 +117,6 @@ module.exports = (io) => {
                 username: newMessage.username,
                 time: newMessage.time,
             });
-
-            if (otherFcm) {
-                await sendNotificationToToken(otherFcm, userId, newMessage.content);
-            } else {
-                console.error('No valid FCM token available');
-            }
         });
 
         // 클라이언트가 방을 나갈 때 실행할 이벤트 핸들러
