@@ -101,7 +101,7 @@ module.exports = (io) => {
             const isInRoom = Array.from(socketsInRoom).some(socketId => io.sockets.sockets.get(socketId).userId === otherId); // 해당 방에 otherId가 있는지 확인
             
             //만약 방에 있다면, 알림 전송
-            if (isInRoom) {
+            if (!isInRoom) {
                 const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
             
                 if (otherFcm) {
