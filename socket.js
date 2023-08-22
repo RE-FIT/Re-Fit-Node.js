@@ -28,11 +28,14 @@ const getFcm = async (otherId) => {
     }
 };
 
-const sendNotificationToToken = async (fcmToken, title, body) => {
+const sendNotificationToToken = async (fcmToken, title, body, roomId) => {
     const message = {
         notification: {
             title: title,
             body: body
+        },
+        data: {
+            roomId: roomId
         },
         token: fcmToken
     };
@@ -105,7 +108,7 @@ module.exports = (io) => {
                 const { otherFcm } = await getFcm(otherId); //fcm 토큰 정보 받아오기
             
                 if (otherFcm) {
-                    await sendNotificationToToken(otherFcm, userId, newMessage.content);
+                    await sendNotificationToToken(otherFcm, userId, newMessage.content, roomId);
                 } else {
                     console.error('No valid FCM token available');
                 }
