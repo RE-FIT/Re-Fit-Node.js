@@ -42,6 +42,8 @@ router.get('/', async (req, res) => {
           let postState = otherImageResponse.data.postState
   
           let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
+          
+          if (!lastChat) return null;
   
           return {
             roomId: chatroom.roomId,
@@ -59,8 +61,9 @@ router.get('/', async (req, res) => {
           }
         }));
 
-        reducedChatrooms.sort((a, b) => (b.time || 0) - (a.time || 0));
-        res.json(reducedChatrooms);  // 조회된 chatrooms을 응답으로 전송
+        const finalChatrooms = reducedChatrooms.filter(chatroom => chatroom !== null);
+        finalChatrooms.sort((a, b) => (b.time || 0) - (a.time || 0));
+        res.json(finalChatrooms);  // 조회된 chatrooms을 응답으로 전송
       })
       .catch((err) => {  
         res.status(500).json({ message: "채팅방을 불러올 수 없습니다.", code: 50000 });
