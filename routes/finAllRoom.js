@@ -42,8 +42,19 @@ router.get('/', async (req, res) => {
           let postState = otherImageResponse.data.postState
   
           let lastChat = await chat.findOne({ roomId: chatroom.roomId }).sort({ time: -1 });
-          
           if (!lastChat) return null;
+
+          // 안읽은 메시지 수 계산
+          let lastExit = (me === chatroom.seller) ? chatroom.seller_out : chatroom.buyer_out;
+
+          // 안읽은 메시지 수 구하기
+          let unreadMessagesCount = 0;
+          if (lastExit) {
+              unreadMessagesCount = await chat.countDocuments({
+                  roomId: chatroom.roomId,
+                  time: { $gt: lastExit }
+              });
+          }
   
           return {
             roomId: chatroom.roomId,
@@ -57,7 +68,7 @@ router.get('/', async (req, res) => {
             otherImage: otherImage,
             message: lastChat ? lastChat.content : null,
             time: lastChat ? lastChat.time : null,
-            remain: 10
+            remain: unreadMessagesCount
           }
         }));
 

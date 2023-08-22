@@ -47,6 +47,7 @@ router.post('/', async (req, res) => {
         // 채팅방에 참여자(me) 추가
         chatrooms.participants.push(me);
         chatrooms.buyer_enter = new Date();
+        chatrooms.buyer_out = new Date();
         await chatrooms.save();
 
         res.json({ roomId: chatrooms.roomId });
@@ -61,7 +62,9 @@ router.post('/', async (req, res) => {
         buyer: me,
         seller: you, 
         buyer_enter: new Date(), 
-        seller_enter: new Date()
+        seller_enter: new Date(),
+        buyer_out: new Date(),
+        seller_out: new Date()
       });
       await newChatroom.save();
 

@@ -17,7 +17,9 @@ const roomSchema = new mongoose.Schema({
   buyer: String,
   seller: String,
   buyer_enter: Date,
-  seller_enter: Date
+  seller_enter: Date,
+  buyer_out: Date,
+  seller_out: Date
 });
 
 // 채팅 스키마 설정
