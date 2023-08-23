@@ -30,11 +30,9 @@ const getFcm = async (otherId) => {
 
 const sendNotificationToToken = async (fcmToken, title, body, notificationId) => {
     const message = {
-        notification: {
-            title: title,
-            body: body
-        },
         data: {
+            title: title,
+            body: body,
             notificationId: notificationId
         },
         token: fcmToken
