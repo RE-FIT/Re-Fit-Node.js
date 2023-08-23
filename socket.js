@@ -35,8 +35,7 @@ const sendNotificationToToken = async (fcmToken, title, body, notificationId) =>
             body: body,
             notificationId: notificationId
         },
-        token: fcmToken,
-        priority: "high"
+        token: fcmToken
     };
 
     try {
