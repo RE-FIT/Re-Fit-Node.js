@@ -1,10 +1,11 @@
 import express from "express";
 import { chatroom } from "../schemas.js";
 import auth from "../common/middleware/auth.middleware.js";
+import { validateCreateRoom } from "../common/middleware/validator.middleware.js";
 
 const router = express.Router();
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, validateCreateRoom, async (req, res) => {
   const me = req.userId;
   const you = req.body.other;
   const postId = req.body.postId;
