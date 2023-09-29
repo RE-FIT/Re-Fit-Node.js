@@ -9,7 +9,7 @@ import finAllRoom from "./routes/finAllRoom.js";
 import createRoom from "./routes/createRoom.js";
 import findRoom from "./routes/findRoom.js";
 import leaveRoom from "./routes/leaveRoom.js";
-import checkRoom from "./routes/checkRoom.js";
+import { errorHandler } from "./common/middleware/error.middleware.js";
 
 dotenv.config();
 
@@ -29,7 +29,8 @@ app.use("/chat/room/all", finAllRoom);
 app.use("/chat/room/create", createRoom);
 app.use("/chat/room", findRoom);
 app.use("/chat/room", leaveRoom);
-app.use("/chat/room", checkRoom);
+
+app.use(errorHandler);
 
 server.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`);
