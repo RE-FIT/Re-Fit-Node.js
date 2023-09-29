@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// 카운터 스키마 설정
 const counterSchema = mongoose.Schema({
   _id: { type: String, required: true },
   seq: { type: Number, default: 0 },
@@ -8,7 +7,6 @@ const counterSchema = mongoose.Schema({
 
 const counter = mongoose.model("counter", counterSchema);
 
-// 채팅방 스키마 설정
 const roomSchema = new mongoose.Schema({
   roomId: { type: Number, unique: true },
   participants: [String],
@@ -20,15 +18,6 @@ const roomSchema = new mongoose.Schema({
   seller_enter: Date,
   buyer_out: Date,
   seller_out: Date,
-});
-
-// 채팅 스키마 설정
-const chatSchema = new mongoose.Schema({
-  content: String,
-  roomId: Number,
-  username: String,
-  time: Date,
-  notificationId: String,
 });
 
 roomSchema.pre("save", async function (next) {
@@ -51,8 +40,6 @@ roomSchema.pre("save", async function (next) {
   }
 });
 
-// 스키마 생성
-const chat = mongoose.model("chat", chatSchema);
 const chatroom = mongoose.model("chatroom", roomSchema);
 
-export { chat, chatroom };
+export default chatroom;

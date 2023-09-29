@@ -1,5 +1,6 @@
 import axios from "axios";
-import { chat, chatroom } from "./schemas.js";
+import chat from "./chat/chat.schema.js";
+import chatroom from "./chatroom/chatroom.schema.js";
 import admin from "firebase-admin";
 import serviceAccount from "./firebaseConfig.js";
 

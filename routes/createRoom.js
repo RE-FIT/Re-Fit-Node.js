@@ -1,7 +1,7 @@
 import express from "express";
-import { chatroom } from "../schemas.js";
 import auth from "../common/middleware/auth.middleware.js";
 import { validateCreateRoom } from "../common/middleware/validator.middleware.js";
+import chatroom from "../chatroom/chatroom.schema.js";
 
 const router = express.Router();
 
