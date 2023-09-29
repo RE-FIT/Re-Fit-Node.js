@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 // 카운터 스키마 설정
 const counterSchema = mongoose.Schema({
   _id: { type: String, required: true },
-  seq: { type: Number, default: 0 }
+  seq: { type: Number, default: 0 },
 });
 
-const counter = mongoose.model('counter', counterSchema);
+const counter = mongoose.model("counter", counterSchema);
 
 // 채팅방 스키마 설정
 const roomSchema = new mongoose.Schema({
@@ -19,7 +19,7 @@ const roomSchema = new mongoose.Schema({
   buyer_enter: Date,
   seller_enter: Date,
   buyer_out: Date,
-  seller_out: Date
+  seller_out: Date,
 });
 
 // 채팅 스키마 설정
@@ -27,18 +27,18 @@ const chatSchema = new mongoose.Schema({
   content: String,
   roomId: Number,
   username: String,
-  time : Date,
-  notificationId : String
+  time: Date,
+  notificationId: String,
 });
 
-roomSchema.pre('save', async function(next) {
+roomSchema.pre("save", async function (next) {
   if (this.isNew) {
     var doc = this;
     try {
       const counterDoc = await counter.findByIdAndUpdate(
-        {_id: 'roomId'},
-        {$inc: {seq: 1}},
-        {new: true, upsert: true}
+        { _id: "roomId" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
       );
 
       doc.roomId = counterDoc.seq;
@@ -52,7 +52,7 @@ roomSchema.pre('save', async function(next) {
 });
 
 // 스키마 생성
-const chat = mongoose.model('chat', chatSchema);
-const chatroom = mongoose.model('chatroom', roomSchema);
+const chat = mongoose.model("chat", chatSchema);
+const chatroom = mongoose.model("chatroom", roomSchema);
 
-module.exports = { chat, chatroom };
+export { chat, chatroom };
